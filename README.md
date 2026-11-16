@@ -1,69 +1,65 @@
-==================================================
-1. 글 다건조회 API 구현
-==================================================
-원인
+# postPractice
+
+REST API 예제 연습 과정의 커밋 단계별 개선 내역 (원인 - 해결 - 방법)
+
+## 1. 글 다건조회 API 구현
+### 원인
 - 프론트엔드 앱이 화면에 글 목록을 그리려면 JSON 형태의 글 데이터가 필요하지만, 이를 내려주는 API가 없음
 - 글(Post)과 댓글(PostComment)이 서로를 참조하는 양방향 관계라서, 엔티티를 그대로 JSON으로 바꾸면
   글 -> 댓글 -> 글 -> 댓글 ... 순으로 잭슨(Jackson)이 무한 루프에 빠질 위험이 있음
 
-해결
+### 해결
 - 글 다건조회 API 구현
 
-방법
+### 방법
 - ApiV1PostController 추가
-  - @RestController 사용 : @Controller + @ResponseBody 와 같아서, 리턴값이 뷰 이름이 아닌 JSON 응답 본문이 됨
+  - `@RestController` 사용 : `@Controller` + `@ResponseBody` 와 같아서, 리턴값이 뷰 이름이 아닌 JSON 응답 본문이 됨
   - GET /api/v1/posts 요청을 받는 getItems() 액션 메서드 추가, postService.findAll() 결과를 그대로 리턴
-  - 조회 전용이므로 @Transactional(readOnly = true) 적용
+  - 조회 전용이므로 `@Transactional(readOnly = true)` 적용
 - PostService에 findAll() 추가 (postRepository.findAll() 위임)
-- PostComment의 post 필드에 @JsonIgnore 추가
+- PostComment의 post 필드에 `@JsonIgnore` 추가
   - 댓글을 JSON으로 바꿀 때 post 필드를 건너뛰게 해서 순환참조로 인한 무한 루프를 차단
 
-==================================================
-2. 글 단건조회 API 구현
-==================================================
-원인
+## 2. 글 단건조회 API 구현
+### 원인
 - 글 상세 화면을 그리려면 특정 번호의 글 하나만 받아올 수 있어야 하지만, 목록 전체를 받는 API만 있음
 - 목록을 받아서 프론트에서 원하는 글을 골라내는 방식은 불필요한 데이터까지 전송하게 됨
 
-해결
+### 해결
 - 글 단건조회 API 구현
 
-방법
+### 방법
 - ApiV1PostController에 GET /api/v1/posts/{id} 요청을 받는 getItem() 액션 메서드 추가
-  - @PathVariable int id 로 URL 경로의 글 번호를 받음
-  - 조회 전용이므로 @Transactional(readOnly = true) 적용
+  - `@PathVariable` int id 로 URL 경로의 글 번호를 받음
+  - 조회 전용이므로 `@Transactional(readOnly = true)` 적용
 - PostService에 findById(int id) 추가, Optional<Post>를 리턴하도록 해서 호출하는 쪽에서 존재 여부를 다룰 수 있게 함
 
-==================================================
-3. 공통 URL 접두어 클래스 레벨 매핑
-==================================================
-원인
+## 3. 공통 URL 접두어 클래스 레벨 매핑
+### 원인
 - 액션 메서드마다 "/api/v1/posts" 라는 같은 접두어가 반복해서 적혀 있음
 - 앞으로 삭제 등 액션이 늘어날수록 중복이 커지고, API 버전(v1 -> v2)이나 경로를 바꿀 때 모든 메서드를 고쳐야 해서 실수하기 쉬움
 
-해결
+### 해결
 - 공통 URL 접두어 클래스 레벨 매핑
 
-방법
-- ApiV1PostController 클래스에 @RequestMapping("/api/v1/posts") 추가
-- getItems()는 @GetMapping 으로, getItem()은 @GetMapping("/{id}") 로 변경하여 공통 접두어 뒤의 경로만 기술
+### 방법
+- ApiV1PostController 클래스에 `@RequestMapping("/api/v1/posts")` 추가
+- getItems()는 `@GetMapping` 으로, getItem()은 `@GetMapping("/{id}")` 로 변경하여 공통 접두어 뒤의 경로만 기술
 - 실제 요청 URL(GET /api/v1/posts, GET /api/v1/posts/{id})은 그대로라서 프론트엔드 쪽 변경은 없음
 
-==================================================
-4. PostDto 도입
-==================================================
-원인
+## 4. PostDto 도입
+### 원인
 - 엔티티(Post)가 API 응답으로 바로 노출되고 있음
   - 프론트엔드에서 "createDate를 createdDate로", "title을 subject로" 처럼 이름만 바꿔 달라는 간단한 요청이 와도
     엔티티 필드명, 즉 DB 칼럼명까지 바꿔야 하는 구조라서 백엔드 내부 로직과 DB가 프론트 요구에 직접 흔들림
   - 엔티티에 필드를 추가하면 의도하지 않아도 응답 JSON에 그대로 노출됨
   - 글 목록/상세 응답에 댓글 목록(comments)까지 통째로 딸려 나가서 응답이 불필요하게 커짐
-- 순환참조를 막기 위해 엔티티(PostComment)에 @JsonIgnore 라는 JSON 전용 설정이 섞여 있음
+- 순환참조를 막기 위해 엔티티(PostComment)에 `@JsonIgnore` 라는 JSON 전용 설정이 섞여 있음
 
-해결
+### 해결
 - PostDto 도입
 
-방법
+### 방법
 - com.back.domain.post.post.dto.PostDto 를 record로 추가
   - 필드 : id, createDate, modifyDate, title, content (응답에 필요한 값만 선별, comments는 제외)
   - record 라서 getter, 생성자, equals/hashCode 가 자동으로 만들어지고 불변 객체가 됨
@@ -71,101 +67,91 @@
 - ApiV1PostController
   - getItems() 의 리턴 타입을 List<Post> -> List<PostDto> 로 변경, .stream().map(PostDto::new).toList() 로 변환
   - getItem() 의 리턴 타입을 Post -> PostDto 로 변경, new PostDto(post) 로 변환
-- PostComment의 post 필드에서 @JsonIgnore 제거
+- PostComment의 post 필드에서 `@JsonIgnore` 제거
   - 이제 엔티티가 JSON으로 직렬화되지 않으므로 순환참조가 생길 일이 없고, 엔티티에서 JSON 관련 설정을 걷어냄
 - 이후 응답 이름을 바꿔야 할 때는 PostDto만 고치면 되고 엔티티/DB는 그대로 유지됨
 
-==================================================
-5. 댓글 다건조회 API 구현
-==================================================
-원인
+## 5. 댓글 다건조회 API 구현
+### 원인
 - PostDto 도입 이후 글 응답에서 댓글 목록이 빠졌기 때문에, 프론트엔드가 특정 글의 댓글 목록을 받을 방법이 없음
 - 댓글 엔티티(PostComment)를 그대로 응답하면 글 때와 같은 문제(엔티티 노출, post 필드로 인한 순환참조)가 다시 생김
 
-해결
+### 해결
 - 댓글 다건조회 API 구현
 
-방법
+### 방법
 - PostCommentDto 도입 (com.back.domain.post.postComment.dto.PostCommentDto, record)
   - 필드 : id, createDate, modifyDate, postId, content
   - 엔티티의 post 필드(Post 객체 전체) 대신 postId(숫자)만 담아서 순환참조를 원천 차단하면서도 어느 글의 댓글인지 알 수 있게 함
   - PostComment를 받는 보조 생성자 PostCommentDto(PostComment postComment) 로 변환 로직을 한 곳에 모음
 - ApiV1PostCommentController 추가
-  - 클래스에 @RequestMapping("/api/v1/posts/{postId}/comments") 로 공통 접두어를 처음부터 클래스 레벨에 매핑
+  - 클래스에 `@RequestMapping("/api/v1/posts/{postId}/comments")` 로 공통 접두어를 처음부터 클래스 레벨에 매핑
   - GET /api/v1/posts/{postId}/comments 요청을 받는 getItems() 추가
   - 글을 먼저 조회한 뒤 post.getComments() 를 PostCommentDto 리스트로 변환해서 리턴
-  - 조회 전용이므로 @Transactional(readOnly = true) 적용, 지연 로딩(LAZY)인 댓글 목록도 트랜잭션 안에서 안전하게 읽음
+  - 조회 전용이므로 `@Transactional(readOnly = true)` 적용, 지연 로딩(LAZY)인 댓글 목록도 트랜잭션 안에서 안전하게 읽음
 
-==================================================
-6. 댓글 단건조회 API 구현
-==================================================
-원인
+## 6. 댓글 단건조회 API 구현
+### 원인
 - 댓글 하나의 정보만 필요할 때도 해당 글의 댓글 목록 전체를 받아야 함
 - 댓글 번호만으로 조회하면 URL의 글 번호와 상관없는 다른 글의 댓글까지 조회될 수 있어서
   /posts/{postId}/comments/{id} 라는 URL 계층 구조와 실제 데이터가 어긋날 수 있음
 
-해결
+### 해결
 - 댓글 단건조회 API 구현
 
-방법
+### 방법
 - Post 엔티티에 findCommentById(int id) 추가
   - 해당 글의 comments 안에서만 id가 일치하는 댓글을 찾아 Optional<PostComment> 로 리턴
   - "이 글에 속한 댓글"이라는 규칙을 엔티티가 책임지도록 해서 다른 글의 댓글이 조회되는 것을 막음
 - ApiV1PostCommentController에 GET /api/v1/posts/{postId}/comments/{id} 요청을 받는 getItem() 추가
   - 글 조회 -> post.findCommentById(id) 로 댓글 조회 -> PostCommentDto 로 변환해서 리턴
-  - 조회 전용이므로 @Transactional(readOnly = true) 적용
+  - 조회 전용이므로 `@Transactional(readOnly = true)` 적용
 
-==================================================
-7. 댓글 삭제 API 구현
-==================================================
-원인
+## 7. 댓글 삭제 API 구현
+### 원인
 - 조회 API만 있어서 프론트엔드에서 댓글을 지울 방법이 없음
 
-해결
+### 해결
 - 댓글 삭제 API 구현
 
-방법
+### 방법
 - Post 엔티티에 deleteComment(PostComment postComment) 추가
   - comments 리스트에서 댓글을 제거하기만 하면, orphanRemoval = true 설정 덕분에 부모(글)와 연결이 끊긴 댓글이
     트랜잭션 커밋 시점에 더티체킹으로 감지되어 DELETE 쿼리가 실행됨
 - PostService에 deleteComment(Post post, PostComment postComment) 추가 (post.deleteComment 위임)
 - ApiV1PostCommentController에 GET /api/v1/posts/{postId}/comments/{id}/delete 요청을 받는 delete() 추가
   - 글 조회 -> 해당 글의 댓글 조회 -> 삭제 후 "n번 댓글이 삭제되었습니다." 메시지를 리턴
-  - 더티체킹은 트랜잭션 안에서만 동작하므로 쓰기 가능한 @Transactional 적용 (readOnly 아님)
+  - 더티체킹은 트랜잭션 안에서만 동작하므로 쓰기 가능한 `@Transactional` 적용 (readOnly 아님)
   - 개발 편의를 위해 브라우저 주소창에서 바로 호출할 수 있도록 일단 GET 방식으로 매핑
 
-==================================================
-8. 글 삭제 API 구현
-==================================================
-원인
+## 8. 글 삭제 API 구현
+### 원인
 - 글을 지울 수 있는 API가 없음
 - 댓글이 달린 글을 지울 때 댓글을 따로 먼저 지우지 않으면 외래키 제약 때문에 글 삭제가 실패할 수 있음
 
-해결
+### 해결
 - 글 삭제 API 구현
 
-방법
+### 방법
 - PostService에 delete(Post post) 추가 (postRepository.delete 위임)
 - ApiV1PostController에 GET /api/v1/posts/{id}/delete 요청을 받는 delete() 추가
   - 글 조회 -> 삭제 후 "n번 글이 삭제되었습니다." 메시지를 리턴
-  - 데이터를 변경하므로 쓰기 가능한 @Transactional 적용
+  - 데이터를 변경하므로 쓰기 가능한 `@Transactional` 적용
   - 댓글 삭제와 같은 이유로 일단 GET 방식으로 매핑
 - Post 엔티티의 comments 에 걸린 cascade = REMOVE 설정 덕분에, 글을 지우면 관련 댓글이 먼저 자동으로 삭제되어
   댓글을 지우는 코드를 따로 작성하지 않아도 됨
 
-==================================================
-9. RsData 도입
-==================================================
-원인
+## 9. RsData 도입
+### 원인
 - 삭제 API가 "n번 글이 삭제되었습니다." 같은 문자열만 응답하고 있음
   - 프론트엔드가 성공/실패를 구분하려면 사람이 읽는 문장을 파싱해야 하고, 문구가 바뀌면 프론트 로직이 깨짐
   - 응답 본문이 JSON이 아닌 일반 텍스트라서 다른 API들과 형식이 일치하지 않음
 - 조회를 제외한 모든 요청(삭제, 작성, 수정 등)은 "결과 코드 + 메시지" 가 필수인데, 이를 담을 공통 형식이 없음
 
-해결
+### 해결
 - RsData 도입
 
-방법
+### 방법
 - com.back.global.rsData.RsData 를 record로 추가
   - resultCode : "HTTP상태코드-세부코드" 형식 (예: 200-1 = 성공 중 1번 상황), 프론트는 이 코드로 분기
   - msg : 사용자에게 보여줄 메시지
@@ -173,20 +159,18 @@
   - new RsData("200-1", "n번 글(댓글)이 삭제되었습니다.") 를 리턴하여 {"resultCode": ..., "msg": ...} JSON으로 응답
 - 조회 API는 실패할 일이 거의 없고 데이터 자체가 결과이므로 RsData를 적용하지 않음(오버스펙 방지)
 
-==================================================
-10. RsData 제네릭 적용
-==================================================
-원인
+## 10. RsData 제네릭 적용
+### 원인
 - RsData는 resultCode와 msg만 담을 수 있어서, 결과 코드/메시지만으로 표현하기 힘든 부가 데이터를 함께 보낼 수 없음
   - 예) 삭제 후 프론트엔드가 "어떤 글(댓글)이 지워졌는지" 를 화면에 표시하거나 목록에서 빼려면 삭제된 대상 정보가 필요
 - data 필드를 Object 타입으로 두면 어떤 데이터든 담을 수는 있지만, 컴파일 시점에 타입 체크가 안 되고
   꺼내 쓸 때마다 형변환이 필요하며, 메서드 시그니처만 보고 어떤 데이터가 응답되는지 알 수 없음
 - 글 전용, 댓글 전용 응답 클래스를 따로 만들면 비슷한 클래스가 계속 늘어남
 
-해결
+### 해결
 - RsData 제네릭 적용
 
-방법
+### 방법
 - RsData 를 RsData<T> 로 변경하고 T data 필드 추가
   - 하나의 RsData 클래스로 RsData<PostDto>, RsData<PostCommentDto> 처럼 data 타입을 사용하는 쪽에서 지정
   - data 가 필요 없는 응답을 위해 data 를 null 로 채우는 보조 생성자 RsData(String resultCode, String msg) 추가
