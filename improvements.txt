@@ -114,3 +114,22 @@
 - ApiV1PostCommentController에 GET /api/v1/posts/{postId}/comments/{id} 요청을 받는 getItem() 추가
   - 글 조회 -> post.findCommentById(id) 로 댓글 조회 -> PostCommentDto 로 변환해서 리턴
   - 조회 전용이므로 @Transactional(readOnly = true) 적용
+
+==================================================
+7. 댓글 삭제 API 구현
+==================================================
+원인
+- 조회 API만 있어서 프론트엔드에서 댓글을 지울 방법이 없음
+
+해결
+- 댓글 삭제 API 구현
+
+방법
+- Post 엔티티에 deleteComment(PostComment postComment) 추가
+  - comments 리스트에서 댓글을 제거하기만 하면, orphanRemoval = true 설정 덕분에 부모(글)와 연결이 끊긴 댓글이
+    트랜잭션 커밋 시점에 더티체킹으로 감지되어 DELETE 쿼리가 실행됨
+- PostService에 deleteComment(Post post, PostComment postComment) 추가 (post.deleteComment 위임)
+- ApiV1PostCommentController에 GET /api/v1/posts/{postId}/comments/{id}/delete 요청을 받는 delete() 추가
+  - 글 조회 -> 해당 글의 댓글 조회 -> 삭제 후 "n번 댓글이 삭제되었습니다." 메시지를 리턴
+  - 더티체킹은 트랜잭션 안에서만 동작하므로 쓰기 가능한 @Transactional 적용 (readOnly 아님)
+  - 개발 편의를 위해 브라우저 주소창에서 바로 호출할 수 있도록 일단 GET 방식으로 매핑
