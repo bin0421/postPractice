@@ -17,3 +17,19 @@
 - PostService에 findAll() 추가 (postRepository.findAll() 위임)
 - PostComment의 post 필드에 @JsonIgnore 추가
   - 댓글을 JSON으로 바꿀 때 post 필드를 건너뛰게 해서 순환참조로 인한 무한 루프를 차단
+
+==================================================
+2. 글 단건조회 API 구현
+==================================================
+원인
+- 글 상세 화면을 그리려면 특정 번호의 글 하나만 받아올 수 있어야 하지만, 목록 전체를 받는 API만 있음
+- 목록을 받아서 프론트에서 원하는 글을 골라내는 방식은 불필요한 데이터까지 전송하게 됨
+
+해결
+- 글 단건조회 API 구현
+
+방법
+- ApiV1PostController에 GET /api/v1/posts/{id} 요청을 받는 getItem() 액션 메서드 추가
+  - @PathVariable int id 로 URL 경로의 글 번호를 받음
+  - 조회 전용이므로 @Transactional(readOnly = true) 적용
+- PostService에 findById(int id) 추가, Optional<Post>를 리턴하도록 해서 호출하는 쪽에서 존재 여부를 다룰 수 있게 함
