@@ -48,3 +48,29 @@
 - ApiV1PostController 클래스에 @RequestMapping("/api/v1/posts") 추가
 - getItems()는 @GetMapping 으로, getItem()은 @GetMapping("/{id}") 로 변경하여 공통 접두어 뒤의 경로만 기술
 - 실제 요청 URL(GET /api/v1/posts, GET /api/v1/posts/{id})은 그대로라서 프론트엔드 쪽 변경은 없음
+
+==================================================
+4. PostDto 도입
+==================================================
+원인
+- 엔티티(Post)가 API 응답으로 바로 노출되고 있음
+  - 프론트엔드에서 "createDate를 createdDate로", "title을 subject로" 처럼 이름만 바꿔 달라는 간단한 요청이 와도
+    엔티티 필드명, 즉 DB 칼럼명까지 바꿔야 하는 구조라서 백엔드 내부 로직과 DB가 프론트 요구에 직접 흔들림
+  - 엔티티에 필드를 추가하면 의도하지 않아도 응답 JSON에 그대로 노출됨
+  - 글 목록/상세 응답에 댓글 목록(comments)까지 통째로 딸려 나가서 응답이 불필요하게 커짐
+- 순환참조를 막기 위해 엔티티(PostComment)에 @JsonIgnore 라는 JSON 전용 설정이 섞여 있음
+
+해결
+- PostDto 도입
+
+방법
+- com.back.domain.post.post.dto.PostDto 를 record로 추가
+  - 필드 : id, createDate, modifyDate, title, content (응답에 필요한 값만 선별, comments는 제외)
+  - record 라서 getter, 생성자, equals/hashCode 가 자동으로 만들어지고 불변 객체가 됨
+  - Post를 받는 보조 생성자 PostDto(Post post)를 두어 엔티티 -> DTO 변환 로직을 한 곳에 모음
+- ApiV1PostController
+  - getItems() 의 리턴 타입을 List<Post> -> List<PostDto> 로 변경, .stream().map(PostDto::new).toList() 로 변환
+  - getItem() 의 리턴 타입을 Post -> PostDto 로 변경, new PostDto(post) 로 변환
+- PostComment의 post 필드에서 @JsonIgnore 제거
+  - 이제 엔티티가 JSON으로 직렬화되지 않으므로 순환참조가 생길 일이 없고, 엔티티에서 JSON 관련 설정을 걷어냄
+- 이후 응답 이름을 바꿔야 할 때는 PostDto만 고치면 되고 엔티티/DB는 그대로 유지됨
