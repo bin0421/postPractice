@@ -6,22 +6,24 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
 @RestController
+@RequestMapping("/api/v1/posts")
 @RequiredArgsConstructor
 public class ApiV1PostController {
     private final PostService postService;
 
-    @GetMapping("/api/v1/posts")
+    @GetMapping
     @Transactional(readOnly = true)
     public List<Post> getItems() {
         return postService.findAll();
     }
 
-    @GetMapping("/api/v1/posts/{id}")
+    @GetMapping("/{id}")
     @Transactional(readOnly = true)
     public Post getItem(@PathVariable int id) {
         return postService.findById(id).get();

@@ -33,3 +33,18 @@
   - @PathVariable int id 로 URL 경로의 글 번호를 받음
   - 조회 전용이므로 @Transactional(readOnly = true) 적용
 - PostService에 findById(int id) 추가, Optional<Post>를 리턴하도록 해서 호출하는 쪽에서 존재 여부를 다룰 수 있게 함
+
+==================================================
+3. 공통 URL 접두어 클래스 레벨 매핑
+==================================================
+원인
+- 액션 메서드마다 "/api/v1/posts" 라는 같은 접두어가 반복해서 적혀 있음
+- 앞으로 삭제 등 액션이 늘어날수록 중복이 커지고, API 버전(v1 -> v2)이나 경로를 바꿀 때 모든 메서드를 고쳐야 해서 실수하기 쉬움
+
+해결
+- 공통 URL 접두어 클래스 레벨 매핑
+
+방법
+- ApiV1PostController 클래스에 @RequestMapping("/api/v1/posts") 추가
+- getItems()는 @GetMapping 으로, getItem()은 @GetMapping("/{id}") 로 변경하여 공통 접두어 뒤의 경로만 기술
+- 실제 요청 URL(GET /api/v1/posts, GET /api/v1/posts/{id})은 그대로라서 프론트엔드 쪽 변경은 없음
