@@ -74,3 +74,24 @@
 - PostComment의 post 필드에서 @JsonIgnore 제거
   - 이제 엔티티가 JSON으로 직렬화되지 않으므로 순환참조가 생길 일이 없고, 엔티티에서 JSON 관련 설정을 걷어냄
 - 이후 응답 이름을 바꿔야 할 때는 PostDto만 고치면 되고 엔티티/DB는 그대로 유지됨
+
+==================================================
+5. 댓글 다건조회 API 구현
+==================================================
+원인
+- PostDto 도입 이후 글 응답에서 댓글 목록이 빠졌기 때문에, 프론트엔드가 특정 글의 댓글 목록을 받을 방법이 없음
+- 댓글 엔티티(PostComment)를 그대로 응답하면 글 때와 같은 문제(엔티티 노출, post 필드로 인한 순환참조)가 다시 생김
+
+해결
+- 댓글 다건조회 API 구현
+
+방법
+- PostCommentDto 도입 (com.back.domain.post.postComment.dto.PostCommentDto, record)
+  - 필드 : id, createDate, modifyDate, postId, content
+  - 엔티티의 post 필드(Post 객체 전체) 대신 postId(숫자)만 담아서 순환참조를 원천 차단하면서도 어느 글의 댓글인지 알 수 있게 함
+  - PostComment를 받는 보조 생성자 PostCommentDto(PostComment postComment) 로 변환 로직을 한 곳에 모음
+- ApiV1PostCommentController 추가
+  - 클래스에 @RequestMapping("/api/v1/posts/{postId}/comments") 로 공통 접두어를 처음부터 클래스 레벨에 매핑
+  - GET /api/v1/posts/{postId}/comments 요청을 받는 getItems() 추가
+  - 글을 먼저 조회한 뒤 post.getComments() 를 PostCommentDto 리스트로 변환해서 리턴
+  - 조회 전용이므로 @Transactional(readOnly = true) 적용, 지연 로딩(LAZY)인 댓글 목록도 트랜잭션 안에서 안전하게 읽음
