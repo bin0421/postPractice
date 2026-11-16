@@ -1,0 +1,19 @@
+==================================================
+1. 글 다건조회 API 구현
+==================================================
+원인
+- 프론트엔드 앱이 화면에 글 목록을 그리려면 JSON 형태의 글 데이터가 필요하지만, 이를 내려주는 API가 없음
+- 글(Post)과 댓글(PostComment)이 서로를 참조하는 양방향 관계라서, 엔티티를 그대로 JSON으로 바꾸면
+  글 -> 댓글 -> 글 -> 댓글 ... 순으로 잭슨(Jackson)이 무한 루프에 빠질 위험이 있음
+
+해결
+- 글 다건조회 API 구현
+
+방법
+- ApiV1PostController 추가
+  - @RestController 사용 : @Controller + @ResponseBody 와 같아서, 리턴값이 뷰 이름이 아닌 JSON 응답 본문이 됨
+  - GET /api/v1/posts 요청을 받는 getItems() 액션 메서드 추가, postService.findAll() 결과를 그대로 리턴
+  - 조회 전용이므로 @Transactional(readOnly = true) 적용
+- PostService에 findAll() 추가 (postRepository.findAll() 위임)
+- PostComment의 post 필드에 @JsonIgnore 추가
+  - 댓글을 JSON으로 바꿀 때 post 필드를 건너뛰게 해서 순환참조로 인한 무한 루프를 차단
