@@ -32,6 +32,10 @@ public class PostService {
         return postRepository.findById(id);
     }
 
+    public void delete(Post post) {
+        postRepository.delete(post);
+    }
+
     public boolean deleteComment(Post post, PostComment postComment) {
         return post.deleteComment(postComment);
     }

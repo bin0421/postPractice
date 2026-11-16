@@ -36,4 +36,14 @@ public class ApiV1PostController {
 
         return new PostDto(post);
     }
+
+    @GetMapping("/{id}/delete")
+    @Transactional
+    public String delete(@PathVariable int id) {
+        Post post = postService.findById(id).get();
+
+        postService.delete(post);
+
+        return "%d번 글이 삭제되었습니다.".formatted(id);
+    }
 }
