@@ -95,3 +95,22 @@
   - GET /api/v1/posts/{postId}/comments 요청을 받는 getItems() 추가
   - 글을 먼저 조회한 뒤 post.getComments() 를 PostCommentDto 리스트로 변환해서 리턴
   - 조회 전용이므로 @Transactional(readOnly = true) 적용, 지연 로딩(LAZY)인 댓글 목록도 트랜잭션 안에서 안전하게 읽음
+
+==================================================
+6. 댓글 단건조회 API 구현
+==================================================
+원인
+- 댓글 하나의 정보만 필요할 때도 해당 글의 댓글 목록 전체를 받아야 함
+- 댓글 번호만으로 조회하면 URL의 글 번호와 상관없는 다른 글의 댓글까지 조회될 수 있어서
+  /posts/{postId}/comments/{id} 라는 URL 계층 구조와 실제 데이터가 어긋날 수 있음
+
+해결
+- 댓글 단건조회 API 구현
+
+방법
+- Post 엔티티에 findCommentById(int id) 추가
+  - 해당 글의 comments 안에서만 id가 일치하는 댓글을 찾아 Optional<PostComment> 로 리턴
+  - "이 글에 속한 댓글"이라는 규칙을 엔티티가 책임지도록 해서 다른 글의 댓글이 조회되는 것을 막음
+- ApiV1PostCommentController에 GET /api/v1/posts/{postId}/comments/{id} 요청을 받는 getItem() 추가
+  - 글 조회 -> post.findCommentById(id) 로 댓글 조회 -> PostCommentDto 로 변환해서 리턴
+  - 조회 전용이므로 @Transactional(readOnly = true) 적용
